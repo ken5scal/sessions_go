@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"log"
 	"golang.org/x/crypto/bcrypt"
+	"fmt"
 )
 
 type user struct {
@@ -21,11 +22,12 @@ type session struct {
 	lastActivity time.Time
 }
 
-const port = ":8080"
+const port = ":1080"
 
 var tpl *template.Template
 var dbUsers = make(map[string]user) //key -> user iD
 var dbSessions = make(map[string]session)   //key -> sessionId(cookie value)
+var dbSessionsCleaned time.Time
 
 func init() {
 	tpl = template.Must(template.ParseGlob("templates/*"))
@@ -92,10 +94,72 @@ func signup(w http.ResponseWriter, req *http.Request) {
 }
 
 func login(w http.ResponseWriter, req *http.Request) {
+	if alreadyLoggedIn(w, req) {
+		http.Redirect(w, req, "/", http.StatusSeeOther)
+		return
+	}
 
+	var u user
+	if req.Method == http.MethodPost {
+		un := req.FormValue("username")
+		p := req.FormValue("password")
+
+		u, ok := dbUsers[un]
+		if !ok {
+			http.Error(w, "Username and/or password do not match", http.StatusForbidden)
+			return
+		}
+
+		err := bcrypt.CompareHashAndPassword(u.Password, []byte(p))
+		if err != nil {
+			http.Error(w, "Username and/or password do not match", http.StatusForbidden)
+			return
+		}
+
+		cookie := createNewSession()
+		http.SetCookie(w, cookie)
+
+		dbSessions[cookie.Value] = session{un, time.Now()}
+		http.Redirect(w, req, "/", http.StatusSeeOther)
+		return
+	}
+
+	tpl.ExecuteTemplate(w, "login.html", u)
 }
 
 func logout(w http.ResponseWriter, req *http.Request) {
+	if !alreadyLoggedIn(w, req) {
+		http.Redirect(w, req, "/", http.StatusSeeOther)
+		fmt.Println("you are not logged in")
+		return
+	}
 
+	c, _ := req.Cookie(CookieName)
+	// delete the session
+	delete(dbSessions, c.Value)
+	// remove the cookie
+	c = &http.Cookie{
+		Name:   CookieName,
+		Value:  "",
+		MaxAge: -1,
+	}
+	http.SetCookie(w, c)
+
+	// clean up dbSessions
+	if time.Now().Sub(dbSessionsCleaned) > (time.Second * 30) {
+		go clearSessions()
+	}
+
+	http.Redirect(w, req, "/login", http.StatusSeeOther)
 }
 
+func ShowAllUsers() {
+	for _, value :=  range dbSessions {
+		fmt.Println()
+		fmt.Println(value)
+	}
+
+	for _, value := range dbUsers {
+		fmt.Println(value.UserName)
+	}
+}
