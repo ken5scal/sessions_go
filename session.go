@@ -3,9 +3,11 @@ package main
 import (
 	"net/http"
 	"time"
+	"github.com/satori/go.uuid"
 )
 
 const CookieName = "session"
+const sessionLength int = 30 // sec
 
 func alreadyLoggedIn(w http.ResponseWriter, req *http.Request) bool {
 	c, err := req.Cookie(CookieName)
@@ -22,4 +24,30 @@ func alreadyLoggedIn(w http.ResponseWriter, req *http.Request) bool {
 	c.MaxAge = sessionLength
 	http.SetCookie(w, c)
 	return ok
+}
+
+func createNewSession() *http.Cookie {
+	sessionId := uuid.NewV4()
+	cookie := &http.Cookie{
+		Name: CookieName,
+		Value: sessionId.String(),
+		MaxAge: sessionLength,
+	}
+	return cookie
+}
+
+func getUser(res http.ResponseWriter, req *http.Request) user {
+	cookie, err := req.Cookie(CookieName)
+	if err != nil {
+		cookie = createNewSession()
+	}
+	http.SetCookie(res, cookie)
+
+	var u user
+	if session, ok := dbSessions[cookie.Value]; ok {
+		session.lastActivity = time.Now()
+		dbSessions[cookie.Value] = session
+		u = dbUsers[session.username]
+	}
+	return u
 }

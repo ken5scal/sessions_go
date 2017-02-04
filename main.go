@@ -5,7 +5,6 @@ import (
 	"time"
 	"html/template"
 	"log"
-	"github.com/satori/go.uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -23,7 +22,7 @@ type session struct {
 }
 
 const port = ":8080"
-const sessionLength int = 30 // sec
+
 var tpl *template.Template
 var dbUsers = make(map[string]user) //key -> user iD
 var dbSessions = make(map[string]session)   //key -> sessionId(cookie value)
@@ -43,9 +42,8 @@ func main() {
 }
 
 func index(w http.ResponseWriter, req *http.Request) {
-	// Show User if request parameter contains session cookie
-
-	tpl.ExecuteTemplate(w, "index.html", nil)
+	u := getUser(w, req)
+	tpl.ExecuteTemplate(w, "index.html", u)
 }
 
 func bar(w http.ResponseWriter, req *http.Request) {
@@ -82,13 +80,8 @@ func signup(w http.ResponseWriter, req *http.Request) {
 		dbUsers[un] = u
 
 		// Create session and store in Session Db
-		sID := uuid.NewV4()
-		c := &http.Cookie{
-			Name: CookieName,
-			Value: sID.String(),
-			MaxAge: sessionLength,
-		}
-		http.SetCookie(w, c)
+		c := createNewSession()
+		http.SetCookie(w,c)
 		dbSessions[c.Value] = session{un, time.Now()}
 
 		// Now redirect to Top pageu
