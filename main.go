@@ -5,6 +5,8 @@ import (
 	"time"
 	"html/template"
 	"log"
+	"github.com/satori/go.uuid"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type user struct {
@@ -41,6 +43,8 @@ func main() {
 }
 
 func index(w http.ResponseWriter, req *http.Request) {
+	// Show User if request parameter contains session cookie
+
 	tpl.ExecuteTemplate(w, "index.html", nil)
 }
 
@@ -51,8 +55,47 @@ func bar(w http.ResponseWriter, req *http.Request) {
 func signup(w http.ResponseWriter, req *http.Request) {
 	// Check If user already signs in
 	// if signs in, redirect to root dir
+	if alreadyLoggedIn(w, req) {
+		http.Redirect(w, req, "/", http.StatusSeeOther)
+	}
 
+	var u user
+	if req.Method == http.MethodPost {
+		un := req.FormValue("username")
+		p := req.FormValue("password")
+		f := req.FormValue("firstname")
+		l := req.FormValue("lastname")
+		r := req.FormValue("role")
 
+		if _, ok := dbUsers[un]; ok {
+			http.Error(w, "Username already taken", http.StatusForbidden)
+			return
+		}
+
+		// Then create and store user in User DB
+		passwordInByte, err := bcrypt.GenerateFromPassword([]byte(p),bcrypt.DefaultCost)
+		if err != nil {
+			http.Error(w, "Failed creating user", http.StatusInternalServerError)
+			return
+		}
+		u = user{un, passwordInByte, f, l, r}
+		dbUsers[un] = u
+
+		// Create session and store in Session Db
+		sID := uuid.NewV4()
+		c := &http.Cookie{
+			Name: CookieName,
+			Value: sID.String(),
+			MaxAge: sessionLength,
+		}
+		http.SetCookie(w, c)
+		dbSessions[c.Value] = session{un, time.Now()}
+
+		// Now redirect to Top pageu
+		http.Redirect(w, req, "/", http.StatusSeeOther)
+	}
+
+	tpl.ExecuteTemplate(w, "signup.html", u)
 }
 
 func login(w http.ResponseWriter, req *http.Request) {
