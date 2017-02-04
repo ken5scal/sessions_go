@@ -24,7 +24,7 @@ const port = ":8080"
 const sessionLength int = 30 // sec
 var tpl *template.Template
 var dbUsers = make(map[string]user) //key -> user iD
-var dbSessions = make(map[string]session)   //key -> sessionId
+var dbSessions = make(map[string]session)   //key -> sessionId(cookie value)
 
 func init() {
 	tpl = template.Must(template.ParseGlob("templates/*"))
@@ -49,6 +49,9 @@ func bar(w http.ResponseWriter, req *http.Request) {
 }
 
 func signup(w http.ResponseWriter, req *http.Request) {
+	// Check If user already signs in
+	// if signs in, redirect to root dir
+
 
 }
 
