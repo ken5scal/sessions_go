@@ -27,10 +27,11 @@ const port = ":1080"
 var tpl *template.Template
 var dbUsers = make(map[string]user) //key -> user iD
 var dbSessions = make(map[string]session)   //key -> sessionId(cookie value)
-var dbSessionsCleaned time.Time
+var dbInitiatedTime time.Time
 
 func init() {
 	tpl = template.Must(template.ParseGlob("templates/*"))
+	dbInitiatedTime = time.Now()
 }
 
 func main() {
@@ -134,22 +135,16 @@ func logout(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	c, _ := req.Cookie(CookieName)
+	cookie, _ := req.Cookie(CookieName)
 	// delete the session
-	delete(dbSessions, c.Value)
+	delete(dbSessions, cookie.Value)
 	// remove the cookie
-	c = &http.Cookie{
+	cookie = &http.Cookie{
 		Name:   CookieName,
 		Value:  "",
 		MaxAge: -1,
 	}
-	http.SetCookie(w, c)
-
-	// clean up dbSessions
-	if time.Now().Sub(dbSessionsCleaned) > (time.Second * 30) {
-		go clearSessions()
-	}
-
+	http.SetCookie(w, nil)
 	http.Redirect(w, req, "/login", http.StatusSeeOther)
 }
 

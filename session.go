@@ -49,6 +49,7 @@ func getUser(res http.ResponseWriter, req *http.Request) user {
 	if err != nil {
 		cookie = createNewSession()
 	}
+	cookie.MaxAge = sessionLength
 	http.SetCookie(res, cookie)
 
 	var u user
