@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 	"html/template"
+	"log"
 )
 
 type user struct {
@@ -26,7 +27,7 @@ var dbUsers = make(map[string]user) //key -> user iD
 var dbSessions = make(map[string]session)   //key -> sessionId
 
 func init() {
-	template.Must(template.ParseGlob("templates/*"))
+	tpl = template.Must(template.ParseGlob("templates/*"))
 }
 
 func main() {
@@ -36,11 +37,11 @@ func main() {
 	http.HandleFunc("/login", login)
 	http.HandleFunc("/logout", logout)
 	http.Handle("/favicon.ico", http.NotFoundHandler())
-	http.ListenAndServe("port", nil)
+	log.Fatalln(http.ListenAndServe(port, nil))
 }
 
 func index(w http.ResponseWriter, req *http.Request) {
-
+	tpl.ExecuteTemplate(w, "index.html", nil)
 }
 
 func bar(w http.ResponseWriter, req *http.Request) {
