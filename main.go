@@ -50,7 +50,13 @@ func index(w http.ResponseWriter, req *http.Request) {
 }
 
 func bar(w http.ResponseWriter, req *http.Request) {
+	u := getUser(w, req)
+	if !alreadyLoggedIn(w, req) {
+		http.Redirect(w, req, "/", http.StatusSeeOther)
+		return
+	}
 
+	tpl.ExecuteTemplate(w, "bar.html", u)
 }
 
 func signup(w http.ResponseWriter, req *http.Request) {
@@ -58,6 +64,7 @@ func signup(w http.ResponseWriter, req *http.Request) {
 	// if signs in, redirect to root dir
 	if alreadyLoggedIn(w, req) {
 		http.Redirect(w, req, "/", http.StatusSeeOther)
+		return
 	}
 
 	var u user
