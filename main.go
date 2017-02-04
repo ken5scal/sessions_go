@@ -26,7 +26,7 @@ var dbUsers = make(map[string]user) //key -> user iD
 var dbSessions = make(map[string]session)   //key -> sessionId
 
 func init() {
-
+	template.Must(template.ParseGlob("templates/*"))
 }
 
 func main() {
