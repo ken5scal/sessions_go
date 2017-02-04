@@ -36,6 +36,14 @@ func createNewSession() *http.Cookie {
 	return cookie
 }
 
+func clearSessions() {
+	for sessionId, session := range dbSessions {
+		if time.Now().Sub(session.lastActivity) > (time.Duration(sessionLength) * time.Second) {
+			delete(dbSessions, sessionId)
+		}
+	}
+}
+
 func getUser(res http.ResponseWriter, req *http.Request) user {
 	cookie, err := req.Cookie(CookieName)
 	if err != nil {
