@@ -1,8 +1,29 @@
 package main
 
-import "net/http"
+import (
+	"net/http"
+	"time"
+	"html/template"
+)
 
-var port = ":8080"
+type user struct {
+	UserName string
+	Password []byte
+	First string
+	Last string
+	Role string
+}
+
+type session struct {
+	username string
+	lastActivity time.Time
+}
+
+const port = ":8080"
+const sessionLength int = 30 // sec
+var tpl *template.Template
+var dbUsers = make(map[string]user) //key -> user iD
+var dbSessions = make(map[string]session)   //key -> sessionId
 
 func init() {
 
