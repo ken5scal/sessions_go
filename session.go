@@ -44,13 +44,18 @@ func clearSessions() {
 	}
 }
 
-func getUser(res http.ResponseWriter, req *http.Request) user {
+func getCookie(res http.ResponseWriter, req *http.Request) *http.Cookie {
 	cookie, err := req.Cookie(CookieName)
 	if err != nil {
 		cookie = createNewSession()
 	}
 	cookie.MaxAge = sessionLength
 	http.SetCookie(res, cookie)
+	return cookie
+}
+
+func getUser(res http.ResponseWriter, req *http.Request) user {
+	cookie := getCookie(res, req)
 
 	var u user
 	if session, ok := dbSessions[cookie.Value]; ok {
